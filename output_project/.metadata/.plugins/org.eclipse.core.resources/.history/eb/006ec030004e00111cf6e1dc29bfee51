@@ -1,0 +1,23 @@
+package com.cts.service;
+
+import java.util.List;
+import com.cts.dto.*;
+import com.cts.entity.DeliveryRecord;
+
+public interface DeliveryService {
+
+    String createDelivery(DeliveryRequest request);
+
+    List<?> getAllDeliveries();
+
+    DeliveryRecord getDeliveryById(Long deliveryId);
+
+    DeliveryRecord getDeliveryByOrderId(Long orderId);
+
+    String uploadProof(ProofRequest request);
+
+    List<?> getProofByDeliveryId(Long deliveryId);
+
+    String closeDelivery(Long deliveryId);
+    
+}

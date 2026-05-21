@@ -1,0 +1,52 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.MaintenanceStatus;
+import com.cts.constants.VehicleStatus;
+import com.cts.dto.VehicleDTO;
+import com.cts.entity.MaintenanceRecord;
+import com.cts.repository.MaintenanceRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class MaintenanceService {
+
+    private final MaintenanceRepository repo;
+    private final FleetClient fleetClient;
+    private final AssignmentClient assignmentClient;
+    private final TripClient tripClient;
+
+    public MaintenanceRecord startMaintenance(MaintenanceRecord m) {
+
+        VehicleDTO vehicle = fleetClient.getVehicle(m.getVehicleId());
+
+        if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
+            throw new RuntimeException("Vehicle not available for maintenance");
+        }
+
+        fleetClient.updateVehicleStatus(m.getVehicleId(), "UNDER_MAINTENANCE");
+        assignmentClient.cancelAssignments(m.getVehicleId());
+        tripClient.cancelTrips(m.getVehicleId());
+
+        m.setPerformedAt(LocalDateTime.now());
+        m.setStatus(MaintenanceStatus.IN_PROGRESS);
+
+        return repo.save(m);
+    }
+
+    public MaintenanceRecord completeMaintenance(Long id) {
+
+        MaintenanceRecord m = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Maintenance not found"));
+
+        m.setStatus(MaintenanceStatus.COMPLETED);
+        fleetClient.updateVehicleStatus(m.getVehicleId(), "AVAILABLE");
+
+        return repo.save(m);
+    }
+}

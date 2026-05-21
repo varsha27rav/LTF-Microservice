@@ -1,0 +1,25 @@
+package com.cts;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.entity.Vehicle;
+import com.cts.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class VehicleService {
+
+    private final VehicleRepository repo;
+
+    public Vehicle create(Vehicle v) {
+        return repo.save(v);
+    }
+
+    public List<Vehicle> getAll() {
+        return repo.findAll();
+    }
+}

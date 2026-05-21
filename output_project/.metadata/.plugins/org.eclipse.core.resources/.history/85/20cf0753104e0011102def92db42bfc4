@@ -1,0 +1,62 @@
+package com.cts.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import com.cts.dto.DeliveryRequest;
+import com.cts.dto.ProofRequest;
+import com.cts.entity.DeliveryRecord;
+import com.cts.entity.ProofOfReceipt;
+import com.cts.service.DeliveryService;
+
+@RestController
+@RequestMapping("/api/delivery")
+public class DeliveryController {
+
+    @Autowired
+    private DeliveryService service;
+
+    // ✅ 1. Create Delivery Record
+    @PostMapping
+    public String createDelivery(@RequestBody DeliveryRequest request) {
+        return service.createDelivery(request);
+    }
+
+    // ✅ 2. Get All Deliveries
+    @GetMapping
+    public List<DeliveryRecord> getAllDeliveries() {
+        return service.getAllDeliveries();
+    }
+
+    // ✅ 3. Get Delivery by Delivery ID
+    @GetMapping("/{deliveryId}")
+    public DeliveryRecord getDeliveryById(@PathVariable Long deliveryId) {
+        return service.getDeliveryById(deliveryId);
+    }
+
+    // ✅ 4. Get Delivery by Order ID
+    @GetMapping("/order/{orderId}")
+    public DeliveryRecord getDeliveryByOrderId(@PathVariable Long orderId) {
+        return service.getDeliveryByOrderId(orderId);
+    }
+
+    // ✅ 5. Upload Proof (OTP VALIDATION happens in service)
+    @PostMapping("/proof")
+    public String uploadProof(@RequestBody ProofRequest request) {
+        return service.uploadProof(request);
+    }
+
+    // ✅ 6. Get Proof by Delivery ID
+    @GetMapping("/proof/{deliveryId}")
+    public List<ProofOfReceipt> getProofByDeliveryId(@PathVariable Long deliveryId) {
+        return service.getProofByDeliveryId(deliveryId);
+    }
+
+    // ✅ 7. Close Delivery (updates Shipment also)
+    @PutMapping("/{deliveryId}/close")
+    public String closeDelivery(@PathVariable Long deliveryId) {
+        return service.closeDelivery(deliveryId);
+    }
+}

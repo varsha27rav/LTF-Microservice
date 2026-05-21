@@ -1,0 +1,65 @@
+package com.cts.service;
+
+import java.util.List;
+
+
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.RouteStatus;
+import com.cts.entity.Route;
+import com.cts.repository.RouteRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class RouteService {
+
+    private final RouteRepository repo;
+
+    public Route create(Route r) {
+
+        // ✅ Prevent duplicate route by name
+        if (repo.existsByName(r.getName())) {
+            throw new RuntimeException("Route with this name already exists");
+        }
+
+        // ✅ Optional: normalize status if needed
+        if (r.getStatus() == null) {
+            r.setStatus(RouteStatus.ACTIVE); // or your default
+        }
+        
+        if (repo.existsByStopsJson(r.getStopsJson())) {
+            throw new RuntimeException("Route with same stops already exists");
+        }
+
+        return repo.save(r);
+    }
+
+
+    public List<Route> getAll() {
+        return repo.findAll();
+    }
+
+    public Route getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+    }
+
+    public Route updateStatus(Long id, RouteStatus status) {
+
+        Route route = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+
+        route.setStatus(status);
+
+        return repo.save(route);
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) {
+            throw new RuntimeException("Route not found");
+        }
+        repo.deleteById(id);
+    }
+}

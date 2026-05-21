@@ -1,0 +1,11 @@
+package com.cts.service;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
+
+@FeignClient(name = "DriverLogService", url = "http://localhost:9091/assignments")
+public interface AssignmentClient {
+
+    @PutMapping("/cancel-by-vehicle/{vehicleId}")
+    void cancelAssignments(@PathVariable Long vehicleId);
+}

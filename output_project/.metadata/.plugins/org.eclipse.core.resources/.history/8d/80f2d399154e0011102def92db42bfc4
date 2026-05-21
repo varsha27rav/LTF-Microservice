@@ -1,0 +1,34 @@
+package com.cts.controller;
+
+@RestController
+@RequestMapping("/routes")
+@RequiredArgsConstructor
+public class RouteController {
+
+    private final RouteService service;
+
+    @PostMapping
+    public Route create(@Valid @RequestBody Route r) {
+        return service.create(r);
+    }
+
+    @GetMapping
+    public List<Route> getAll() {
+        return service.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public Route getById(@PathVariable Long id) {
+        return service.getById(id);
+    }
+
+    @PutMapping("/{id}")
+    public Route update(@PathVariable Long id, @Valid @RequestBody Route r) {
+        return service.update(id, r);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
+}

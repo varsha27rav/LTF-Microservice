@@ -1,0 +1,31 @@
+package com.cts.service;
+
+package com.cts.service;
+
+import java.time.LocalDateTime;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.InspectionStatus;
+import com.cts.entity.InspectionRecord;
+import com.cts.repository.InspectionRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class InspectionService {
+
+    private final InspectionRepository repo;
+    private final FleetClient fleetClient;
+
+    public InspectionRecord createInspection(InspectionRecord record) {
+
+        fleetClient.getVehicle(record.getVehicleId());
+
+        record.setPerformedAt(LocalDateTime.now());
+        record.setStatus(InspectionStatus.COMPLETED);
+
+        return repo.save(record);
+    }
+}

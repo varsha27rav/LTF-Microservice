@@ -1,0 +1,16 @@
+package com.cts.service;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import com.cts.dto.StatusUpdateRequest;
+
+@FeignClient(name = "shipment-service", url = "http://localhost:8081/api/shipment")
+public interface APIClient {
+
+    @PutMapping("/{orderId}/status")
+    String updateShipmentStatus(@PathVariable Long orderId,
+                               @RequestBody StatusUpdateRequest request);
+}

@@ -1,0 +1,172 @@
+package com.cts.service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.Status;
+import com.cts.dto.ShipmentRequest;
+import com.cts.dto.ShipmentResponse;
+import com.cts.dto.StatusUpdateRequest;
+import com.cts.dto.UserIdDTO;
+import com.cts.entity.Shipment;
+import com.cts.exception.InvalidStatusException;
+import com.cts.repository.ShipmentReposiotry;
+
+@Service
+public class ShipmentServiceImpl implements ShipmentService {
+
+    @Autowired
+    private ShipmentReposiotry repository;
+
+    @Autowired
+    private APIClient userClient;
+
+    // ✅ OTP Generator
+    private String generateOTP() {
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
+    }
+
+    // ✅ Create Shipment
+    @Override
+    public ShipmentResponse createShipment(ShipmentRequest request) {
+
+        // ✅ Validate User
+        UserIdDTO user = userClient.getUser(request.getCustomerId());
+        if (user == null) {
+            throw new RuntimeException("Customer not found");
+        }
+
+        Shipment order = new Shipment();
+        order.setCustomerId(request.getCustomerId());
+        order.setOrigin(request.getOrigin());
+        order.setDestination(request.getDestination());
+        order.setWeight(request.getWeight());
+        order.setStatus(Status.CREATED);
+
+        repository.save(order);
+
+        return mapToResponse(order);
+    }
+
+    // ✅ Get Shipment By ID
+    @Override
+    public ShipmentResponse getShipment(Long orderId) {
+        Shipment order = repository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+
+        return mapToResponse(order);
+    }
+
+    // ✅ Get All Shipments
+    @Override
+    public List<ShipmentResponse> getAllShipments() {
+        return repository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ✅ Approve Shipment + Generate OTP
+    @Override
+    public String approveShipment(Long orderId) {
+
+        Shipment order = repository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+
+        order.setStatus(Status.APPROVED);
+
+        // ✅ Generate OTP
+        String otp = generateOTP();
+        order.setOtp(otp);
+
+        repository.save(order);
+
+        // ⚠️ For testing only — in real apps don't expose OTP
+        return "Shipment Approved. OTP: " + otp;
+    }
+
+    // ✅ Update Status
+    @Override
+    public String updateStatus(Long orderId, StatusUpdateRequest request) {
+
+        Shipment order = repository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+
+        try {
+            Status status = Status.valueOf(request.getStatus().toUpperCase());
+            order.setStatus(status);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidStatusException(
+                    "Invalid status: " + request.getStatus() +
+                    ". Allowed values: CREATED, APPROVED, IN_TRANSIT, DELIVERED, CLOSED, CANCELLED"
+            );
+        }
+
+        repository.save(order);
+        return "Status Updated";
+    }
+
+    // ✅ Cancel Shipment
+    @Override
+    public String cancelShipment(Long orderId) {
+
+        Shipment order = repository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+
+        order.setStatus(Status.CANCELLED);
+        repository.save(order);
+
+        return "Shipment Cancelled";
+    }
+
+    // ✅ Track Shipment
+    @Override
+    public String trackShipment(Long orderId) {
+
+        Shipment order = repository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+
+        return order.getStatus().name();
+    }
+
+    // ✅ Get Shipments By Customer
+    @Override
+    public List<ShipmentResponse> getShipmentsByCustomer(Long customerId) {
+
+        return repository.findByCustomerId(customerId)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ✅ Get OTP (Used by Delivery Service)
+    @Override
+    public String getOtp(Long orderId) {
+
+        Shipment order = repository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Shipment not found"));
+
+        return order.getOtp();
+    }
+
+    // ✅ Mapping Method
+    private ShipmentResponse mapToResponse(Shipment order) {
+
+        ShipmentResponse response = new ShipmentResponse();
+
+        response.setOrderId(order.getOrderId());
+        response.setCustomerId(order.getCustomerId());
+        response.setOrigin(order.getOrigin());
+        response.setDestination(order.getDestination());
+        response.setWeight(order.getWeight());
+        response.setStatus(order.getStatus().name());
+
+        // ✅ Optional (Enable only for testing)
+        // response.setOtp(order.getOtp());
+
+        return response;
+    }
+}

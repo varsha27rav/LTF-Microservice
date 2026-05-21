@@ -1,0 +1,4 @@
+spring.application.name=Delivery_Proof-of-recepit-Service
+server.port=8099
+
+

@@ -1,0 +1,27 @@
+package com.cts.entity;
+
+
+import java.time.LocalDateTime;
+
+import com.cts.dto.MaintenanceStatus;
+
+import jakarta.persistence.*;
+import lombok.Data;
+
+@Entity
+@Data
+public class MaintenanceRecord {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long maintId;
+
+    private Long vehicleId;
+    private String taskDescription;
+    private String performedBy;
+    private LocalDateTime performedAt;
+    private Double cost;
+
+    @Enumerated(EnumType.STRING)
+    private MaintenanceStatus status;
+}

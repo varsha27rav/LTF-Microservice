@@ -1,0 +1,82 @@
+package com.cts.controller;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cts.constants.InspectionStatus;
+import com.cts.constants.VehicleStatus;
+import com.cts.dto.VehicleDTO;
+import com.cts.entity.InspectionRecord;
+import com.cts.exception.BadRequestException;
+import com.cts.exception.ResourceNotFoundException;
+import com.cts.service.InspectionService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/inspections")
+@RequiredArgsConstructor
+public class InspectionController {
+
+	private final InspectionService service;
+
+	public InspectionRecord create(InspectionRecord record) {
+
+		// ✅ 1. Validate vehicle exists
+		VehicleDTO vehicle = validateVehicle(record.getVehicleId());
+
+		// ✅ 2. Ensure vehicle is AVAILABLE
+		if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
+			throw new BadRequestException("Vehicle must be AVAILABLE for inspection");
+		}
+
+		// ✅ 3. Save inspection
+		record.setPerformedAt(LocalDateTime.now());
+		record.setStatus(InspectionStatus.COMPLETED);
+
+		return repo.save(record);
+	}
+
+	private VehicleDTO validateVehicle(Long vehicleId) {
+	        try {
+	            return fleetClient.getVehicle(vehicleId);
+	        } catch (Exception e) {
+	            throw new ResourceNotFoundException(
+	                "Vehicle not found with id " + vehicleId
+	            );
+	        }
+
+	@PutMapping("/{id}")
+	public InspectionRecord update(@PathVariable Long id, @Valid @RequestBody InspectionRecord r) {
+		return service.update(id, r);
+	}
+
+	@DeleteMapping("/{id}")
+	public void delete(@PathVariable Long id) {
+		service.delete(id);
+	}
+
+	@GetMapping
+	public List<InspectionRecord> all() {
+		return service.getAll();
+	}
+
+	@GetMapping("/{id}")
+	public InspectionRecord get(@PathVariable Long id) {
+		return service.getById(id);
+	}
+
+	@GetMapping("/vehicle/{vehicleId}")
+	public List<InspectionRecord> byVehicle(@PathVariable Long vehicleId) {
+		return service.byVehicle(vehicleId);
+	}
+}

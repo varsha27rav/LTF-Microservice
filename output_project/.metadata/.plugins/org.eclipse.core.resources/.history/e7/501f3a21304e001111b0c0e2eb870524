@@ -1,0 +1,51 @@
+package com.cts.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.entity.Vehicle;
+import com.cts.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class VehicleService {
+
+    private final VehicleRepository repo;
+
+    public Vehicle create(Vehicle v) {
+        return repo.save(v);
+    }
+
+    public List<Vehicle> getAll() {
+        return repo.findAll();
+    }
+
+    public Vehicle getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+    }
+
+    public Vehicle update(Long id, Vehicle v) {
+        Vehicle existing = getById(id);
+
+        existing.setRegNumber(v.getRegNumber());
+        existing.setType(v.getType());
+        existing.setCapacity(v.getCapacity());
+        existing.setStatus(v.getStatus());
+
+        return repo.save(existing);
+    }
+
+    public Vehicle updateStatus(Long id, String status) {
+        Vehicle v = getById(id);
+        v.setStatus(status);
+        return repo.save(v);
+    }
+
+    public void delete(Long id) {
+        repo.deleteById(id);
+    }
+}

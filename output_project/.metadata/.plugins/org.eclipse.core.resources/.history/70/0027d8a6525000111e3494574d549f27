@@ -1,0 +1,6 @@
+package com.cts.dto;
+
+public enum MaintenanceStatus {
+    AVAILABLE,
+    UNDER_MAINTENANCE
+}

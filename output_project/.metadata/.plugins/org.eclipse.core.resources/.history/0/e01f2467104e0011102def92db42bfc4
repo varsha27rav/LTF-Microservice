@@ -1,0 +1,71 @@
+package com.cts.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cts.dto.ShipmentRequest;
+import com.cts.dto.ShipmentResponse;
+import com.cts.dto.StatusUpdateRequest;
+import com.cts.service.ShipmentService;
+
+@RestController
+@RequestMapping("/api/shipment")
+public class ShipmentController {
+
+	    @Autowired
+	    private ShipmentService shipmentService;
+
+	    @PostMapping
+	    public ShipmentResponse createShipment(@RequestBody ShipmentRequest request) {
+	        return shipmentService.createShipment(request);
+	    }
+
+	    @GetMapping("/{orderId}")
+	    public ShipmentResponse getShipment(@PathVariable Long orderId) {
+	        return shipmentService.getShipment(orderId);
+	    }
+
+	    @GetMapping
+	    public List<ShipmentResponse> getAllShipments() {
+	        return shipmentService.getAllShipments();
+	    }
+
+	    @PutMapping("/{orderId}/approve")
+	    public String approveShipment(@PathVariable Long orderId) {
+	        return shipmentService.approveShipment(orderId);
+	    }
+
+	    @PutMapping("/{orderId}/status")
+	    public String updateStatus(@PathVariable Long orderId,
+	                               @RequestBody StatusUpdateRequest request) {
+	        return shipmentService.updateStatus(orderId, request);
+	    }
+
+	    @PutMapping("/{orderId}/cancel")
+	    public String cancelShipment(@PathVariable Long orderId) {
+	        return shipmentService.cancelShipment(orderId);
+	    }
+
+	    @GetMapping("/{orderId}/track")
+	    public String trackShipment(@PathVariable Long orderId) {
+	        return shipmentService.trackShipment(orderId);
+	    }
+
+	    @GetMapping("/customer/{customerId}")
+	    public List<ShipmentResponse> getByCustomer(@PathVariable Long customerId) {
+	        return shipmentService.getShipmentsByCustomer(customerId);
+	    }
+	    
+	    @GetMapping("/{orderId}/otp")
+	    public String getOtp(@PathVariable Long orderId) {
+	        return shipmentService.getOtp(orderId);
+	    }
+}

@@ -1,0 +1,57 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.InspectionStatus;
+import com.cts.entity.InspectionRecord;
+import com.cts.exception.ResourceNotFoundException;
+import com.cts.repository.InspectionRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class InspectionService {
+
+    private final InspectionRepository repo;
+    private final FleetClient fleetClient;
+
+    public InspectionRecord create(InspectionRecord r) {
+        fleetClient.getVehicle(r.getVehicleId());
+        r.setPerformedAt(LocalDateTime.now());
+        r.setStatus(InspectionStatus.COMPLETED);
+        return repo.save(r);
+    }
+
+    public InspectionRecord update(Long id, InspectionRecord r) {
+        InspectionRecord existing = repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+        existing.setConditionRating(r.getConditionRating());
+        existing.setFindings(r.getFindings());
+        existing.setPhotoURI(r.getPhotoURI());
+        existing.setStatus(r.getStatus());
+
+        return repo.save(existing);
+    }
+
+    public void delete(Long id) {
+        repo.deleteById(id);
+    }
+
+    public List<InspectionRecord> getAll() {
+        return repo.findAll();
+    }
+
+    public InspectionRecord getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inspection not found with id " + id));
+    }
+
+    public List<InspectionRecord> byVehicle(Long vehicleId) {
+        return repo.findByVehicleId(vehicleId);
+    }
+}

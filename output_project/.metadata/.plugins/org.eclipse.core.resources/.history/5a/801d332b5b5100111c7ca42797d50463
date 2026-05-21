@@ -1,0 +1,74 @@
+package com.cts.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.VehicleStatus;
+import com.cts.dto.VehicleDTO;
+import com.cts.entity.Vehicle;
+import com.cts.repository.VehicleRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class VehicleService {
+
+    private final VehicleRepository repo;
+
+    public Vehicle create(Vehicle v) {
+
+        // ✅ Prevent duplicate registration number
+        if (repo.existsByRegNumber(v.getRegNumber())) {
+            throw new RuntimeException("Vehicle with this registration number already exists");
+        }
+        
+        return repo.save(v);
+    }
+    
+    public List<Vehicle> getAll() {
+        return repo.findAll();
+    }
+
+    public Vehicle getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+    }
+
+    public Vehicle update(Long id, Vehicle v) {
+        Vehicle existing = getById(id);
+
+        existing.setRegNumber(v.getRegNumber());
+        existing.setType(v.getType());
+        existing.setCapacity(v.getCapacity());
+        existing.setStatus(v.getStatus());
+
+        return repo.save(existing);
+    }
+
+    public Vehicle updateStatus(Long id, String status) {
+
+        Vehicle vehicle = repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+        VehicleStatus vehicleStatus;
+
+        try {
+            vehicleStatus = VehicleStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid vehicle status: " + status);
+        }
+
+        vehicle.setStatus(vehicleStatus);   // ✅ CORRECT
+
+        return repo.save(vehicle);
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) {
+            throw new RuntimeException("Vehicle not found");
+        }
+        repo.deleteById(id);
+    }
+}

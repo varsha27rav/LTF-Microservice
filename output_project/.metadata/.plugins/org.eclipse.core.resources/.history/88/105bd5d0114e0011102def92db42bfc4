@@ -1,0 +1,8 @@
+package com.cts.dto;
+
+@Data
+@AllArgsConstructor
+public class ErrorResponse {
+    private LocalDateTime time;
+    private String message;
+}

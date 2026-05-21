@@ -1,0 +1,121 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.entity.RouteSchedule;
+import com.cts.exception.ConflictException;
+import com.cts.repository.ScheduleRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+public class ScheduleService {
+
+    private final ScheduleRepository scheduleRepo;
+    private final VehicleRepository vehicleRepo;
+    private final RouteRepository routeRepo;
+
+    public ScheduleService(ScheduleRepository scheduleRepo,
+                           VehicleRepository vehicleRepo,
+                           RouteRepository routeRepo) {
+        this.scheduleRepo = scheduleRepo;
+        this.vehicleRepo = vehicleRepo;
+        this.routeRepo = routeRepo;
+    }
+
+    public RouteSchedule create(RouteSchedule s) {
+
+        // ✅ 1. Check vehicle exists
+        Vehicle vehicle = vehicleRepo.findById(s.getVehicleId())
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+        // ✅ 2. Check route exists
+        routeRepo.findById(s.getRouteId())
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+
+        // ✅ 3. Check vehicle status
+        if (!vehicle.getStatus().equalsIgnoreCase("AVAILABLE")) {
+            throw new RuntimeException("Vehicle is not available");
+        }
+
+        // ✅ 4. Check time conflict (NO @Query — simple logic)
+        List<RouteSchedule> schedules = scheduleRepo.findAll();
+
+        for (RouteSchedule existing : schedules) {
+            if (existing.getVehicleId().equals(s.getVehicleId())) {
+
+                boolean overlap =
+                        s.getDepartureAt().isBefore(existing.getArrivalAt()) &&
+                        s.getArrivalAt().isAfter(existing.getDepartureAt());
+
+                if (overlap) {
+                    throw new ConflictException("Vehicle already scheduled in this time range");
+                }
+            }
+        }
+
+        // ✅ 5. Save
+        return scheduleRepo.save(s);
+    }
+
+    public List<RouteSchedule> getAll() {
+        return scheduleRepo.findAll();
+    }
+
+    public RouteSchedule getById(Long id) {
+        return scheduleRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Schedule not found"));
+    }
+
+    public List<RouteSchedule> getByVehicle(Long vehicleId) {
+
+        if (!vehicleRepo.existsById(vehicleId)) {
+            throw new RuntimeException("Vehicle not found");
+        }
+
+        List<RouteSchedule> result = new ArrayList<>();
+
+        for (RouteSchedule s : scheduleRepo.findAll()) {
+            if (s.getVehicleId().equals(vehicleId)) {
+                result.add(s);
+            }
+        }
+
+        return result;
+    }
+
+    public void delete(Long id) {
+        if (!scheduleRepo.existsById(id)) {
+            throw new RuntimeException("Schedule not found");
+        }
+        scheduleRepo.deleteById(id);
+    }
+
+    public boolean isVehicleAvailable(Long vehicleId,
+                                      LocalDateTime start,
+                                      LocalDateTime end) {
+
+        if (!vehicleRepo.existsById(vehicleId)) {
+            throw new RuntimeException("Vehicle not found");
+        }
+
+        for (RouteSchedule s : scheduleRepo.findAll()) {
+            if (s.getVehicleId().equals(vehicleId)) {
+
+                boolean overlap =
+                        start.isBefore(s.getArrivalAt()) &&
+                        end.isAfter(s.getDepartureAt());
+
+                if (overlap) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+}

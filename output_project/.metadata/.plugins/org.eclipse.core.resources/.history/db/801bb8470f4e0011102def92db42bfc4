@@ -1,0 +1,21 @@
+package com.cts.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class ProofRequest {
+
+    @NotNull(message = "DeliveryId is required")
+    private Long deliveryId;
+
+    @NotNull(message = "CustomerId is required")
+    private Long customerId;
+
+    @NotBlank(message = "File URI is required")
+    private String fileURI;
+
+    @NotNull(message = "OTP is required")
+    private Long otp;
+}

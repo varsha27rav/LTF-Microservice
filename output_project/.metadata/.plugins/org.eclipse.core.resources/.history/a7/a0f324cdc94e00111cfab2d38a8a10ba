@@ -1,0 +1,123 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.cts.dto.DeliveryRequest;
+import com.cts.dto.ProofRequest;
+import com.cts.dto.StatusUpdateRequest;
+import com.cts.entity.DeliveryRecord;
+import com.cts.entity.ProofOfReceipt;
+import com.cts.repository.DeliveryRepository;
+import com.cts.repository.ProofRepository;
+
+@Service
+public class DeliveryServiceImpl implements DeliveryService {
+
+    @Autowired
+    private DeliveryRepository deliveryRepo;
+
+    @Autowired
+    private ProofRepository proofRepo;
+
+    // ✅ Feign Client to call Shipment Service
+    @Autowired
+    private APIClient shipmentClient;
+
+    // ✅ Create Delivery Record
+    @Override
+    public String createDelivery(DeliveryRequest request) {
+
+        DeliveryRecord record = new DeliveryRecord();
+        record.setOrderId(request.getOrderId());
+        record.setVehicleId(request.getVehicleId());
+        record.setDriverId(request.getDriverId());
+        record.setDeliveredAt(LocalDateTime.now().toString());
+        record.setStatus("DELIVERED");
+
+        deliveryRepo.save(record);
+
+        return "Delivery Created Successfully";
+    }
+
+    // ✅ Get All Deliveries
+    @Override
+    public List<DeliveryRecord> getAllDeliveries() {
+        return deliveryRepo.findAll();
+    }
+
+    // ✅ Get Delivery by ID
+    @Override
+    public DeliveryRecord getDeliveryById(Long deliveryId) {
+
+        return deliveryRepo.findById(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+    }
+
+    // ✅ Get Delivery by Order ID
+    @Override
+    public DeliveryRecord getDeliveryByOrderId(Long orderId) {
+
+        return deliveryRepo.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Delivery not found for order"));
+    }
+
+    // ✅ Upload Proof with OTP Validation
+    @Override
+    public String uploadProof(ProofRequest request) {
+
+        // ✅ Check Delivery exists
+        DeliveryRecord record = deliveryRepo.findById(request.getDeliveryId())
+                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+
+        String shipmentOtp = shipmentClient.getOtp(record.getOrderId());
+
+     // Convert shipment OTP to Long
+     Long shipmentOtpLong = Long.valueOf(shipmentOtp);
+
+     if (!shipmentOtpLong.equals(request.getOtp())) {
+         throw new RuntimeException("Invalid OTP. Proof cannot be submitted.");
+     }
+
+        // ✅ Save Proof
+        ProofOfReceipt proof = new ProofOfReceipt();
+        proof.setDeliveryId(request.getDeliveryId());
+        proof.setCustomerId(request.getCustomerId());
+        proof.setReceivedAt(LocalDateTime.now().toString());
+        proof.setFileURI(request.getFileURI());
+        proof.setStatus("VERIFIED");
+
+        proofRepo.save(proof);
+
+        return "Proof Verified Successfully";
+    }
+
+    // ✅ Get Proof by Delivery ID
+    @Override
+    public List<ProofOfReceipt> getProofByDeliveryId(Long deliveryId) {
+        return proofRepo.findByDeliveryId(deliveryId);
+    }
+
+    // ✅ Close Delivery + Update Shipment Status
+    @Override
+    public String closeDelivery(Long deliveryId) {
+
+        DeliveryRecord record = deliveryRepo.findById(deliveryId)
+                .orElseThrow(() -> new RuntimeException("Delivery not found"));
+
+        // ✅ Update Delivery status
+        record.setStatus("CLOSED");
+        deliveryRepo.save(record);
+
+        // ✅ Update Shipment status to CLOSED
+        StatusUpdateRequest request = new StatusUpdateRequest();
+        request.setStatus("CLOSED");
+
+        shipmentClient.updateShipmentStatus(record.getOrderId(), request);
+
+        return "Delivery Closed & Shipment Updated Successfully";
+    }
+}

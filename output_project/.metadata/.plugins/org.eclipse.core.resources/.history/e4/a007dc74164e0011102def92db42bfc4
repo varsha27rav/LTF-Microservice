@@ -1,0 +1,68 @@
+package com.cts.controller;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cts.entity.RouteSchedule;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/schedules")
+@RequiredArgsConstructor
+public class ScheduleController {
+
+    private final ScheduleService service;
+
+    @PostMapping
+    public RouteSchedule create(@Valid @RequestBody RouteSchedule s) {
+        return service.create(s);
+    }
+
+    @GetMapping
+    public List<RouteSchedule> getAll() {
+        return service.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public RouteSchedule getById(@PathVariable Long id) {
+        return service.getById(id);
+    }
+
+    @GetMapping("/vehicle/{vehicleId}")
+    public List<RouteSchedule> getByVehicle(@PathVariable Long vehicleId) {
+        return service.getByVehicle(vehicleId);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
+
+    @PostMapping("/check-availability")
+    public Map<String, Boolean> checkAvailability(
+            @RequestParam Long vehicleId,
+            @RequestParam String start,
+            @RequestParam String end
+    ) {
+        return Map.of(
+                "available",
+                service.isVehicleAvailable(
+                        vehicleId,
+                        LocalDateTime.parse(start),
+                        LocalDateTime.parse(end)
+                )
+        );
+    }
+}

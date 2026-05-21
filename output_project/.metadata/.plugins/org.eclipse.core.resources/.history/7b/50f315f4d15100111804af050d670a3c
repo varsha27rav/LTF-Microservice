@@ -1,0 +1,38 @@
+package com.cts.service;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.ConditionRating;
+import com.cts.entity.InspectionRecord;
+import com.cts.entity.MaintenanceRecord;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class InspectionOrchestratorService {
+
+    private final InspectionService inspectionService;
+    private final MaintenanceService maintenanceService;
+
+    public InspectionRecord createInspectionAndTriggerMaintenance(InspectionRecord record) {
+
+        // ✅ 1. Save inspection using existing service
+        InspectionRecord savedInspection = inspectionService.create(record);
+
+        // ✅ 2. Trigger maintenance if needed
+        if (record.getConditionRating() != ConditionRating.GOOD) {
+
+            MaintenanceRecord maintenance = new MaintenanceRecord();
+            maintenance.setVehicleId(record.getVehicleId());
+            maintenance.setTaskDescription("Auto-generated from inspection: " + record.getFindings());
+            maintenance.setPerformedBy("SYSTEM");
+            maintenance.setCost(0.0);
+
+            // ✅ Call existing maintenance method
+            maintenanceService.schedule(maintenance);
+        }
+
+        return savedInspection;
+    }
+}

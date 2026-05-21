@@ -1,0 +1,167 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import com.cts.constants.Role;
+import com.cts.constants.Status;
+import com.cts.dto.LoginDTO;
+import com.cts.dto.UserDTO;
+import com.cts.dto.UserPromotionDTO;
+import com.cts.entity.User;
+import com.cts.mapper.UserMapper;
+import com.cts.repository.AdminRepository;
+import com.netflix.discovery.converters.Auto;
+
+import jakarta.validation.Valid;
+
+@Service
+public class AdminServiceImpl implements AdminService {
+
+//    private final UserFeignClient feignClient;
+//
+//    public AdminServiceImpl(UserFeignClient feignClient) {
+//        this.feignClient = feignClient;
+//    }
+//
+//    public UserDTO addUser(UserDTO dto) {
+//        return feignClient.addUser(dto);
+//    }
+//
+//    public void promoteUser(Long id, UserPromotionDTO dto) {
+//        feignClient.promoteUser(id, dto);
+//    }
+//
+//    public void deactivateUser(Long id) {
+//        feignClient.deactivateUser(id);
+//    }
+//
+//    public void reactivateUser(Long id) {
+//        feignClient.reactivateUser(id);
+//    }
+//
+//    public List<UserDTO> getAllUsers() {
+//        return feignClient.getAllUsers();
+//    }
+//
+//    public UserDTO getUserById(Long id) {
+//        return feignClient.getUserById(id);
+//    }
+//
+//    public UserDTO getByUsername(String username) {
+//        return feignClient.getByUsername(username);
+//    }
+
+	@Autowired
+	private UserMapper userMapper;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
+	private final AdminRepository adminRepository;
+
+	public AdminServiceImpl(AdminRepository authRepository) {
+		this.adminRepository = authRepository;
+	}
+
+	public List<User> getAllUsers() {
+		return adminRepository.findAll();
+	}
+
+	public User getUserById(Long userId) {
+		return adminRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+	}
+
+	public User getByUsername(String username) {
+		return adminRepository.findUserByName(username).orElseThrow(() -> new RuntimeException("User not found"));
+	}
+
+	public UserDTO addUser(UserDTO dto) {
+
+	    // ✅ CHECK duplicate email
+	    if (adminRepository.existsByEmailIgnoreCase(dto.getEmail())) {
+	        throw new RuntimeException("User already exists with this email");
+	    }
+
+	    // ✅ CHECK duplicate phone
+	    if (adminRepository.existsByPhoneNumber(dto.getPhoneNumber())) {
+	        throw new RuntimeException("Phone number already exists");
+	    }
+
+	    // ✅ CREATE USER
+	    User user = new User();
+	    user.setName(dto.getName());
+	    user.setEmail(dto.getEmail().toLowerCase());
+	    user.setPassword(dto.getPassword());
+	    user.setPhoneNumber(dto.getPhoneNumber());
+
+	    return adminRepository.save(user);
+	}
+
+	public void updateRole(@PathVariable("id") Long userId, @RequestBody UserPromotionDTO dto) {
+
+		User user = adminRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+		try {
+			Role newRole = Role.valueOf(dto.getNewRole());
+
+			user.setRole(newRole);
+			user.setStatus(Status.ACTIVE);
+
+			adminRepository.save(user);
+
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to update user: " + e.getMessage());
+		}
+	}
+
+	public void deactivateUser(@Valid @PathVariable("id") Long userId) {
+
+		User user = adminRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+		user.setStatus(Status.INACTIVE);
+		user.setRole(Role.CUSTOMER);
+
+		adminRepository.save(user);
+	}
+
+	public void reactivateUser(@Valid @PathVariable("id") Long userId) {
+
+		User user = adminRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+		user.setStatus(Status.ACTIVE);
+
+		adminRepository.save(user);
+	}
+
+	public boolean validateUser(LoginDTO request) {
+
+	    String email = request.getEmail();
+
+	    User user = adminRepository.findByEmailIgnoreCase(email)
+	            .orElseThrow(() -> new RuntimeException("User not found"));
+
+	    return passwordEncoder.matches(
+	            request.getPassword(),
+	            user.getPassword()
+	    );
+	}
+	
+	public User findByEmail(String email) {
+
+	    String formattedEmail = email.trim();
+
+	    return adminRepository
+	            .findByEmailIgnoreCase(formattedEmail)
+	            .orElseThrow(() -> new RuntimeException("User not found"));
+	}
+}

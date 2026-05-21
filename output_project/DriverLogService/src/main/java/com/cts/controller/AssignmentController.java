@@ -1,0 +1,72 @@
+package com.cts.controller;
+
+import java.util.List;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cts.dto.AssignmentRequest;
+import com.cts.entity.DriverAssignment;
+import com.cts.service.AssignmentService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/assignments")
+@RequiredArgsConstructor
+public class AssignmentController {
+
+    private final AssignmentService service;
+
+    @PostMapping
+    public DriverAssignment assign(@Valid @RequestBody AssignmentRequest req) {
+        return service.assign(req.getDriverId(), req.getVehicleId(), req.getRouteId(), req.getAssignedBy());
+    }
+
+    @GetMapping("/{id}")
+    public DriverAssignment get(@PathVariable Long id) {
+        return service.get(id);
+    }
+
+    @GetMapping
+    public List<DriverAssignment> all() {
+        return service.getAll();
+    }
+
+    @GetMapping("/driver/{driverId}")
+    public List<DriverAssignment> byDriver(@PathVariable Long driverId) {
+        return service.getByDriver(driverId);
+    }
+
+    @GetMapping("/vehicle/{vehicleId}")
+    public List<DriverAssignment> byVehicle(@PathVariable Long vehicleId) {
+        return service.getByVehicle(vehicleId);
+    }
+
+    @GetMapping("/active")
+    public List<DriverAssignment> active() {
+        return service.getActive();
+    }
+
+    @PatchMapping("/{id}/complete")
+    public DriverAssignment complete(@PathVariable Long id) {
+        return service.complete(id);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public DriverAssignment cancel(@PathVariable Long id) {
+        return service.cancel(id);
+    }
+    
+    @PutMapping("/cancel-by-vehicle/{vehicleId}")
+    public void cancelByVehicle(@PathVariable Long vehicleId) {
+        service.cancelByVehicle(vehicleId);
+    }
+}

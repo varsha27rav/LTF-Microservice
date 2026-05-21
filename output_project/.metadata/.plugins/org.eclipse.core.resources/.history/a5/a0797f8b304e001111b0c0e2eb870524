@@ -1,0 +1,5 @@
+package com.cts.constants;
+
+public enum e {
+
+}

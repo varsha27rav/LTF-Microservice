@@ -1,0 +1,38 @@
+package com.cts.entity;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Entity
+@Data
+public class RouteSchedule {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long scheduleId;
+
+    @NotNull(message = "Vehicle ID required")
+    private Long vehicleId;
+
+    @NotNull(message = "Route ID required")
+    private Long routeId;
+
+    @NotNull
+    private LocalDateTime departureAt;
+
+    @NotNull
+    private LocalDateTime arrivalAt;
+
+    @NotBlank(message = "Dispatcher ID required")
+    private String dispatcherId;
+
+    @NotBlank(message = "Status required")
+    private String status;
+}

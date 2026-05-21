@@ -1,0 +1,5 @@
+package com.cts.constants;
+
+public enum Status {
+	CREATED, APPROVED, IN_TRANSIT, DELIVERED, CANCELLED
+}

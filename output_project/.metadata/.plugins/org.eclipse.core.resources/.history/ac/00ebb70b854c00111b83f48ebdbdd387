@@ -1,0 +1,11 @@
+package com.cts.dto;
+
+public class UserIdDTO {
+    private Long userId;
+
+    public UserIdDTO(String userId) {
+        this.userId = userId;
+    }
+
+    // Getter & Setter
+}

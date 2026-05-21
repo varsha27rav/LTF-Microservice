@@ -1,0 +1,48 @@
+package com.cts.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.entity.Route;
+import com.cts.repository.RouteRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class RouteService {
+
+    private final RouteRepository repo;
+
+    public Route create(Route r) {
+        return repo.save(r);
+    }
+
+    public List<Route> getAll() {
+        return repo.findAll();
+    }
+
+    public Route getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+    }
+
+    public Route update(Long id, Route r) {
+        Route existing = getById(id);
+
+        existing.setName(r.getName());
+        existing.setStopsJson(r.getStopsJson());
+        existing.setDistanceKm(r.getDistanceKm());
+        existing.setStatus(r.getStatus());
+
+        return repo.save(existing);
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) {
+            throw new RuntimeException("Vehicle not found");
+        }
+        repo.deleteById(id);
+    }
+}

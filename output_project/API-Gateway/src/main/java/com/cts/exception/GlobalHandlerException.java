@@ -1,0 +1,54 @@
+package com.cts.exception;
+
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@RestControllerAdvice
+public class GlobalHandlerException {
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException ex) {
+
+		String message = ex.getBindingResult().getFieldErrors().get(0).getDefaultMessage();
+
+		return ResponseEntity.badRequest().body(Map.of("status", 400, "message", message));
+	}
+
+	@ExceptionHandler(RuntimeException.class)
+	public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
+
+		String message = ex.getMessage();
+
+		if (message.contains("{")) {
+			String jsonPart = message.substring(message.indexOf("{"));
+			try {
+				ObjectMapper mapper = new ObjectMapper();
+				Map<String, Object> errorMap = mapper.readValue(jsonPart, Map.class);
+				message = (String) errorMap.get("message");
+			} catch (Exception ignored) {
+			}
+		}
+
+		return ResponseEntity.badRequest().body(Map.of("status", 400, "message", message));
+	}
+	@ExceptionHandler(org.springframework.web.method.annotation.HandlerMethodValidationException.class)
+	public ResponseEntity<?> handleHandlerMethodValidationException(
+	        org.springframework.web.method.annotation.HandlerMethodValidationException ex) {
+
+	    String message = ex.getAllErrors()
+	            .get(0)
+	            .getDefaultMessage();
+
+	    return ResponseEntity.badRequest()
+	            .body(Map.of(
+	                    "status", 400,
+	                    "message", message
+	            ));
+	}
+
+}

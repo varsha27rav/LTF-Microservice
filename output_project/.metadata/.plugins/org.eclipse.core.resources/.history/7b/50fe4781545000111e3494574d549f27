@@ -1,0 +1,12 @@
+package com.cts.service;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
+
+@FeignClient(name = "trip-service", url = "http://localhost:8097/trips")
+public interface TripClient {
+
+    @PatchMapping("/cancel-by-vehicle/{vehicleId}")
+    void cancelTrips(@PathVariable Long vehicleId);
+}
+``

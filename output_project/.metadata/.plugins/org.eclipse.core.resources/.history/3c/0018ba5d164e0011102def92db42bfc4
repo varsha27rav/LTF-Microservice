@@ -1,0 +1,56 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.cts.entity.RouteSchedule;
+import com.cts.exception.ConflictException;
+import com.cts.repository.ScheduleRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class ScheduleService {
+
+    private final ScheduleRepository repo;
+
+    public RouteSchedule create(RouteSchedule s) {
+
+        if (!isVehicleAvailable(s.getVehicleId(), s.getDepartureAt(), s.getArrivalAt())) {
+            throw new ConflictException("Vehicle already scheduled in this time range");
+        }
+
+        return repo.save(s);
+    }
+
+    public List<RouteSchedule> getAll() {
+        return repo.findAll();
+    }
+
+    public RouteSchedule getById(Long id) {
+        return repo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Schedule not found"));
+    }
+
+    public List<RouteSchedule> getByVehicle(Long vehicleId) {
+        return repo.findAll()
+                .stream()
+                .filter(s -> s.getVehicleId().equals(vehicleId))
+                .toList();
+    }
+
+    public void delete(Long id) {
+        repo.deleteById(id);
+    }
+
+    public boolean isVehicleAvailable(Long vehicleId, LocalDateTime start, LocalDateTime end) {
+
+        List<RouteSchedule> conflicts =
+                repo.findConflicts(vehicleId, start, end);
+
+        return conflicts.isEmpty();
+    }
+}

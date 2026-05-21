@@ -1,0 +1,8 @@
+package com.cts.constants;
+
+public enum ScheduleStatus {
+    SCHEDULED,
+    COMPLETED,
+    CANCELLED,
+    ACTIVE
+}

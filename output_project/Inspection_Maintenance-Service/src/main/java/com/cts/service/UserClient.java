@@ -1,0 +1,14 @@
+package com.cts.service;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
+import com.cts.dto.UserDTO;
+
+@FeignClient(name = "Admin-Service", url = "http://localhost:8078/api/admin")
+public interface UserClient {
+
+    @GetMapping("/internal/users/{id}")
+    UserDTO getUser(@PathVariable Long id);
+}

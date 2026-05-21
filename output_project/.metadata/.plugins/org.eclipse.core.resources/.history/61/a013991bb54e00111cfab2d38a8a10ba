@@ -1,0 +1,57 @@
+package com.cts.controller;
+
+import java.util.Map;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import com.cts.dto.*;
+import com.cts.service.APIClient;
+import com.cts.service.AuditFeignClient;
+import com.cts.utility.JwtUtil;
+
+import io.github.resilience4j.retry.annotation.Retry;
+import jakarta.validation.Valid;
+
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+
+	@Autowired
+	private APIClient apiClient;
+	
+	
+	@Autowired
+	private AuditFeignClient auditFeignClient;
+	
+	@Autowired
+	private JwtUtil jwtUtil;
+
+
+	@PostMapping("/register")
+	public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+
+		apiClient.registerUser(request);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message","User registered successfully"));
+	}
+
+	@PostMapping("/login")
+	@Retry(name = "API-Gateway",fallbackMethod = "getDefaultDetails")
+	public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+
+		Boolean res =  apiClient.getUserDetails(request);
+		if(res) {
+			String token = jwtUtil.generateToken(request.getEmail(), request.getRole().toString());
+			return ResponseEntity.status(HttpStatus.OK).body(new AuthResponse(token, "Login Successful"));
+		}
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Bad Credentials check the email and password you entered");
+	}
+	
+	public ResponseEntity<?> getDefaultDetails(@RequestBody LoginRequest request) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+	}
+}

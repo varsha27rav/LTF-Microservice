@@ -1,0 +1,23 @@
+package com.cts;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "delivery_record")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeliveryRecord {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long deliveryId;
+
+    private Long orderId;
+    private Long vehicleId;
+    private Long driverId;
+
+    private String deliveredAt;
+    private String status;
+}

@@ -1,0 +1,14 @@
+package com.cts.dto;
+
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class StatusUpdateRequest {
+	
+	@NotBlank(message = "Status should not be empty")
+	@Enumerated(EnumType.STRING)
+    private String status;
+}

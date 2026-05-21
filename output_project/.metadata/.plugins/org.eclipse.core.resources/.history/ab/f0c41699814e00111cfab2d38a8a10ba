@@ -1,0 +1,155 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+   // ✅ NEW IMPORT
+import com.cts.constants.ScheduleStatus;
+import com.cts.constants.VehicleStatus;
+import com.cts.entity.RouteSchedule;
+import com.cts.entity.Vehicle;
+import com.cts.exception.ConflictException;
+import com.cts.repository.RouteRepository;
+import com.cts.repository.ScheduleRepository;
+import com.cts.repository.VehicleRepository;
+
+@Service
+public class ScheduleService {
+
+    private final ScheduleRepository scheduleRepo;
+    private final VehicleRepository vehicleRepo;
+    private final RouteRepository routeRepo;
+    private final AdminFeignClient adminFeignClient;  // ✅ NEW
+
+    // ✅ UPDATED CONSTRUCTOR
+    public ScheduleService(ScheduleRepository scheduleRepo,
+                           VehicleRepository vehicleRepo,
+                           RouteRepository routeRepo,
+                           AdminFeignClient adminFeignClient) {
+
+        this.scheduleRepo = scheduleRepo;
+        this.vehicleRepo = vehicleRepo;
+        this.routeRepo = routeRepo;
+        this.adminFeignClient = adminFeignClient; // ✅ NEW
+    }
+
+    // ✅ CREATE SCHEDULE
+    public RouteSchedule create(RouteSchedule s) {
+
+        // ✅ NEW: Validate Dispatcher with Admin Service
+        try {
+            adminFeignClient.getUserById(Long.parseLong(s.getDispatcherId()));
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid dispatcher ID");
+        }
+
+        // ✅ 1. Check Vehicle Exists
+        Vehicle vehicle = vehicleRepo.findById(s.getVehicleId())
+                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+
+        // ✅ 2. Check Route Exists
+        routeRepo.findById(s.getRouteId())
+                .orElseThrow(() -> new RuntimeException("Route not found"));
+
+        // ✅ 3. Check Vehicle Status (ENUM ✅)
+        if (vehicle.getStatus() != VehicleStatus.AVAILABLE) {
+            throw new RuntimeException("Vehicle is not available");
+        }
+
+        // ✅ 4. Check Time Conflict
+        List<RouteSchedule> allSchedules = scheduleRepo.findAll();
+
+        for (RouteSchedule existing : allSchedules) {
+
+            if (existing.getVehicleId().equals(s.getVehicleId())) {
+
+                boolean overlap =
+                        s.getDepartureAt().isBefore(existing.getArrivalAt()) &&
+                        s.getArrivalAt().isAfter(existing.getDepartureAt());
+
+                if (overlap) {
+                    throw new ConflictException("Vehicle already scheduled in this time range");
+                }
+            }
+        }
+
+        // ✅ 5. Save Schedule
+        return scheduleRepo.save(s);
+    }
+
+    // ✅ GET ALL
+    public List<RouteSchedule> getAll() {
+        return scheduleRepo.findAll();
+    }
+
+    // ✅ GET BY ID
+    public RouteSchedule getById(Long id) {
+        return scheduleRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Schedule not found"));
+    }
+
+    // ✅ GET BY VEHICLE
+    public List<RouteSchedule> getByVehicle(Long vehicleId) {
+
+        if (!vehicleRepo.existsById(vehicleId)) {
+            throw new RuntimeException("Vehicle not found");
+        }
+
+        List<RouteSchedule> result = new ArrayList<>();
+
+        for (RouteSchedule s : scheduleRepo.findAll()) {
+            if (s.getVehicleId().equals(vehicleId)) {
+                result.add(s);
+            }
+        }
+
+        return result;
+    }
+
+    // ✅ DELETE
+    public void delete(Long id) {
+        if (!scheduleRepo.existsById(id)) {
+            throw new RuntimeException("Schedule not found");
+        }
+        scheduleRepo.deleteById(id);
+    }
+
+    // ✅ CHECK AVAILABILITY
+    public boolean isVehicleAvailable(Long vehicleId,
+                                      LocalDateTime start,
+                                      LocalDateTime end) {
+
+        if (!vehicleRepo.existsById(vehicleId)) {
+            throw new RuntimeException("Vehicle not found");
+        }
+
+        for (RouteSchedule s : scheduleRepo.findAll()) {
+
+            if (s.getVehicleId().equals(vehicleId)) {
+
+                boolean overlap =
+                        start.isBefore(s.getArrivalAt()) &&
+                        end.isAfter(s.getDepartureAt());
+
+                if (overlap) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // ✅ UPDATE STATUS using ENUM
+    public RouteSchedule updateStatus(Long id, ScheduleStatus status) {
+
+        RouteSchedule schedule = scheduleRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Schedule not found"));
+
+        schedule.setStatus(status);
+
+        return scheduleRepo.save(schedule);
+    }
+}

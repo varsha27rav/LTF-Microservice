@@ -1,0 +1,75 @@
+package com.cts.controller;
+
+import java.util.List;
+
+import java.util.Map;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cts.constants.TripStatus;
+import com.cts.entity.TripLog;
+import com.cts.service.TripService;
+
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/trips")
+@RequiredArgsConstructor
+public class TripController {
+
+    private final TripService service;
+
+    @PostMapping("/start")
+    public TripLog start(@RequestBody Map<String, Long> req) {
+        return service.start(req.get("driverId"), req.get("vehicleId"), req.get("routeId"));
+    }
+
+    @PostMapping("/end")
+    public TripLog end(@RequestBody Map<String, Object> req) {
+        return service.end(
+                Long.valueOf(req.get("tripId").toString()),
+                Double.valueOf(req.get("distance").toString()),
+                (String) req.get("notes")
+        );
+    }
+
+    @GetMapping("/{id}")
+    public TripLog get(@PathVariable Long id) {
+        return service.get(id);
+    }
+
+    @GetMapping
+    public List<TripLog> all() {
+        return service.getAll();
+    }
+
+    @GetMapping("/driver/{driverId}")
+    public List<TripLog> byDriver(@PathVariable Long driverId) {
+        return service.byDriver(driverId);
+    }
+
+    @GetMapping("/vehicle/{vehicleId}")
+    public List<TripLog> byVehicle(@PathVariable Long vehicleId) {
+        return service.byVehicle(vehicleId);
+    }
+
+    @GetMapping("/status/{status}")
+    public List<TripLog> byStatus(@PathVariable TripStatus status) {
+        return service.byStatus(status);
+    }
+
+    @PatchMapping("/{id}/cancel")
+    public TripLog cancel(@PathVariable Long id) {
+        return service.cancel(id);
+    }
+    
+    @PatchMapping("/cancel-by-vehicle/{vehicleId}")
+    public void cancelByVehicle(@PathVariable Long vehicleId) {
+        service.cancelByVehicle(vehicleId);
+    }
+}

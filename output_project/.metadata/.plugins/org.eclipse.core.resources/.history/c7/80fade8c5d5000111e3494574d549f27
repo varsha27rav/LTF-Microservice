@@ -1,0 +1,131 @@
+package com.cts.service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.cts.constants.InspectionStatus;
+import com.cts.constants.Role;
+import com.cts.dto.UserDTO;
+import com.cts.entity.InspectionRecord;
+import com.cts.exception.BadRequestException;
+import com.cts.exception.ResourceNotFoundException;
+import com.cts.repository.InspectionRepository;
+
+import feign.FeignException;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class InspectionService {
+
+	private final InspectionRepository repo;
+	private final FleetClient fleetClient;
+	private final UserClient userClient;
+
+	// ✅ CREATE INSPECTION
+	public InspectionRecord create(@Valid InspectionRecord record) {
+
+		// 1️⃣ Validate vehicle exists
+		try {
+			fleetClient.getVehicle(record.getVehicleId());
+		} catch (Exception e) {
+			throw new ResourceNotFoundException("Vehicle not found with id " + record.getVehicleId());
+		}
+
+		// 2️⃣ Validate inspector exists
+		UserDTO user;
+		try {
+			user = userClient.getUser(record.getInspectorId());
+		} catch (Exception e) {
+			throw new ResourceNotFoundException("Inspector not found with id " + record.getInspectorId());
+		}
+
+		// 3️⃣ Validate role
+		if (user.getRole() != Role.FLEET_MANAGER) {
+			throw new BadRequestException("Only Fleet Manager can perform vehicle inspection");
+		}
+
+		// 4️⃣ Save inspection
+		record.setPerformedAt(LocalDateTime.now());
+		record.setStatus(InspectionStatus.COMPLETED);
+
+		return repo.save(record);
+	}
+
+	// ✅ UPDATE INSPECTION
+	public InspectionRecord update(Long id, @Valid InspectionRecord record) {
+
+		InspectionRecord existing = repo.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+
+		// Validate vehicle (existing one)
+		try {
+			fleetClient.getVehicle(existing.getVehicleId());
+		} catch (Exception e) {
+			throw new ResourceNotFoundException("Vehicle not found");
+		}
+
+		// Validate inspector again
+		UserDTO user;
+		try {
+			user = userClient.getUser(record.getInspectorId());
+		} catch (Exception e) {
+			throw new ResourceNotFoundException("Inspector not found");
+		}
+
+		if (user.getRole() != Role.FLEET_MANAGER) {
+			throw new BadRequestException("Only Fleet Manager can update inspection");
+		}
+
+		existing.setConditionRating(record.getConditionRating());
+		existing.setFindings(record.getFindings());
+		existing.setPhotoURI(record.getPhotoURI());
+
+		return repo.save(existing);
+	}
+
+	private void validateVehicle(Long vehicleId) {
+		try {
+			fleetClient.getVehicle(vehicleId);
+		} catch (FeignException.NotFound e) {
+			throw new ResourceNotFoundException("Vehicle not found");
+		} catch (FeignException e) {
+			throw new ServiceUnavailableException("Fleet service unavailable");
+		}
+	}
+
+	private void validateInspector(Long inspectorId) {
+		UserDTO user;
+		try {
+			user = userClient.getUser(inspectorId);
+		} catch (FeignException.NotFound e) {
+			throw new ResourceNotFoundException("Inspector not found");
+		} catch (FeignException e) {
+			throw new ServiceUnavailableException("User service unavailable");
+		}
+
+		if (user.getRole() != Role.FLEET_MANAGER) {
+			throw new BadRequestException("User is not authorized to inspect vehicle");
+		}
+	}
+
+	public void delete(Long id) {
+		repo.deleteById(id);
+	}
+
+	public List<InspectionRecord> getAll() {
+		return repo.findAll();
+	}
+
+	public InspectionRecord getById(Long id) {
+		return repo.findById(id).orElseThrow(() -> new ResourceNotFoundException("Inspection not found"));
+	}
+
+	public List<InspectionRecord> byVehicle(Long vehicleId) {
+		return repo.findByVehicleId(vehicleId);
+	}
+}

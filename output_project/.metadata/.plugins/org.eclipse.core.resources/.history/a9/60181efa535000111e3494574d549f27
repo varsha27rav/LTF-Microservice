@@ -1,0 +1,6 @@
+package com.cts.dto;
+
+public enum VehicleStatus {
+    AVAILABLE,
+    UNDER_MAINTENANCE
+}
